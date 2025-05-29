@@ -125,7 +125,7 @@ private:
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _vehicle_odometry_sub{this, ORB_ID(vehicle_odometry)};
 	uORB::Subscription                 _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionCallbackWorkItem _state_sharing_control_sub{this, ORB_ID(state_sharing_control)};
+	uORB::SubscriptionCallbackWorkItem _state_sharing_control_sub{this, ORB_ID(incoming_state_sharing_control)};
 	uORB::Subscription                 _parameter_update_sub{ORB_ID(parameter_update)};
 
 	// Performance (perf) counters

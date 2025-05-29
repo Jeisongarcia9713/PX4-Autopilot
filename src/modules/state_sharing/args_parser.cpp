@@ -61,27 +61,27 @@ void ArgParser::toLowerCase(char *str)
 	}
 }
 
-ArgParser::ArgParser(const char *data) : _argCount(0)
+ArgParser::ArgParser(const char *data) : _arg_count(0)
 {
 	char input[256];
 	strncpy(input, data, sizeof(input) - 1);
 	input[sizeof(input) - 1] = '\0';
 	char *token = strtok(input, ",");
 
-	while (token && _argCount < MAX_ARGS) {
+	while (token && _arg_count < MAX_ARGS) {
 		char *equalPos = strchr(token, '=');
 
 		if (equalPos) {
 			*equalPos = '\0';
-			strncpy(_args[_argCount].key, token, min(strlen(token), MAX_KEY_LEN - 1));
-			_args[_argCount].key[min(strlen(token), MAX_KEY_LEN - 1)] = '\0';
-			trim(_args[_argCount].key);
+			strncpy(_args[_arg_count].key, token, min(strlen(token), MAX_KEY_LEN - 1));
+			_args[_arg_count].key[min(strlen(token), MAX_KEY_LEN - 1)] = '\0';
+			trim(_args[_arg_count].key);
 
-			strncpy(_args[_argCount].value, equalPos + 1, min(strlen(equalPos + 1), MAX_VALUE_LEN - 1));
-			_args[_argCount].value[min(strlen(equalPos + 1), MAX_VALUE_LEN - 1)] = '\0';
-			trim(_args[_argCount].value);
+			strncpy(_args[_arg_count].value, equalPos + 1, min(strlen(equalPos + 1), MAX_VALUE_LEN - 1));
+			_args[_arg_count].value[min(strlen(equalPos + 1), MAX_VALUE_LEN - 1)] = '\0';
+			trim(_args[_arg_count].value);
 
-			_argCount++;
+			_arg_count++;
 		}
 
 		token = strtok(NULL, ",");
@@ -90,7 +90,7 @@ ArgParser::ArgParser(const char *data) : _argCount(0)
 
 bool ArgParser::hasArgument(const char *arg) const
 {
-	for (size_t i = 0; i < _argCount; i++) {
+	for (size_t i = 0; i < _arg_count; i++) {
 		if (strcmp(_args[i].key, arg) == 0) {
 			return true;
 		}
@@ -101,7 +101,7 @@ bool ArgParser::hasArgument(const char *arg) const
 
 const char *ArgParser::getArgument(const char *arg, const char *defaultValue) const
 {
-	for (size_t i = 0; i < _argCount; i++) {
+	for (size_t i = 0; i < _arg_count; i++) {
 		if (strcmp(_args[i].key, arg) == 0) {
 			return _args[i].value;
 		}
@@ -183,7 +183,7 @@ void ArgParser::printArguments() const
 {
 	PX4_DEBUG("-------------Received arguments:---------");
 
-	for (size_t i = 0; i < _argCount; i++) {
+	for (size_t i = 0; i < _arg_count; i++) {
 		PX4_DEBUG("%s = %s", _args[i].key, _args[i].value);
 	}
 

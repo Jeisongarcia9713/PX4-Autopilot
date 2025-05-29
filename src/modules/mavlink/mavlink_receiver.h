@@ -338,7 +338,7 @@ private:
 	uORB::Publication<vehicle_odometry_s>			_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<state_sharing_msg_s> 			_in_state_sharing_msg_pub{ORB_ID(incoming_state_sharing)};
-	uORB::Publication<state_sharing_control_s>              _in_state_sharing_control_msg_pub{ORB_ID(state_sharing_control)};
+	uORB::Publication<state_sharing_control_s>              _in_state_sharing_control_msg_pub{ORB_ID(incoming_state_sharing_control)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};

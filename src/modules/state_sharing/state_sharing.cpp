@@ -108,18 +108,18 @@ void StateSharing::Run()
 
 		if (_state_sharing_control_sub.copy(&state_sharing_control)) {
 			if (state_sharing_control.command == state_sharing_control_s::COMMAND_START) {
-				PX4_DEBUG("Received mission command [%f] %d",
+				PX4_DEBUG("Received state sharing control [%f] %d",
 					  getRealTimeNs() / 1e9,
 					  state_sharing_control.command);
 
 				if (!_start) {
 					_start = true;
 					_first_time_publish = true;
+					_state_sharing.frame_id = _param_ident.get();
 					_publisher_state_sharing.ScheduleOnInterval(
 						(double)_param_sharing_period.get() * 1e6,
 						(double)_param_delay_start.get() * 1e6
 					);
-					_state_sharing.frame_id = _param_ident.get();
 				}
 			}
 
@@ -128,6 +128,10 @@ void StateSharing::Run()
 					_start = false;
 					_publisher_state_sharing.ScheduleClear();
 				}
+
+				PX4_DEBUG("Received state sharing control [%f] %d",
+					  getRealTimeNs() / 1e9,
+					  state_sharing_control.command);
 			}
 
 			if (state_sharing_control.command == state_sharing_control_s::COMMAND_UPDATE_PARAMS) {

@@ -32,7 +32,7 @@ public:
 	}
 
 private:
-	uORB::Subscription _out_state_sharing_control_sub{ORB_ID(state_sharing_control)};
+	uORB::Subscription _out_state_sharing_control_sub{ORB_ID(outgoing_state_sharing_control)};
 
 	/* do not allow to copying this class */
 	MavlinkStreamStateSharingControl(MavlinkStreamStateSharingControl &) = delete;
