@@ -331,6 +331,21 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		break;
 #endif
 
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined(CONFIG_MODULES_STATE_SHARING)
+
+	case MAVLINK_MSG_ID_STATE_SHARING:
+		handle_message_state_sharing(msg);
+		break;
+#endif
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined(CONFIG_MODULES_STATE_SHARING)
+
+	case MAVLINK_MSG_ID_STATE_SHARING_CONTROL:
+		handle_message_state_sharing_control(msg);
+		break;
+#endif
+
 	default:
 		break;
 	}
@@ -3119,6 +3134,52 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 
 	_open_drone_id_system_pub.publish(odid_system);
 }
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined (CONFIG_MODULES_STATE_SHARING)
+void
+MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
+{
+	if ((msg->sysid == mavlink_system.sysid)) {
+		return;
+	}
+
+	state_sharing_msg_s incoming_state;
+	mavlink_state_sharing_t mav_state_sharing_msg;
+	mavlink_msg_state_sharing_decode(msg, &mav_state_sharing_msg);
+
+	incoming_state.timestamp = mav_state_sharing_msg.timestamp;
+	incoming_state.timestamp_drone = mav_state_sharing_msg.timestamp_drone;
+	incoming_state.frame_id = mav_state_sharing_msg.frame_id;
+	incoming_state.global_position_lon = mav_state_sharing_msg.global_position_lon;
+	incoming_state.global_position_lat = mav_state_sharing_msg.global_position_lat;
+	incoming_state.global_position_alt = mav_state_sharing_msg.global_position_alt;
+	incoming_state.roll = mav_state_sharing_msg.roll;
+	incoming_state.pitch = mav_state_sharing_msg.pitch;
+	incoming_state.yaw = mav_state_sharing_msg.yaw;
+	memcpy(incoming_state.q, mav_state_sharing_msg.q, sizeof(mav_state_sharing_msg.q));
+	_in_state_sharing_msg_pub.publish(incoming_state);
+}
+#endif //MAVLINK_MSG_ID_STATE_SHARING
+
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined (CONFIG_MODULES_STATE_SHARING)
+void
+MavlinkReceiver::handle_message_state_sharing_control(mavlink_message_t *msg)
+{
+	if ((msg->sysid == mavlink_system.sysid)) {
+		return;
+	}
+
+	state_sharing_control_s incoming_control{};
+	mavlink_state_sharing_control_t mav_control_msg;
+	mavlink_msg_state_sharing_control_decode(msg, &mav_control_msg);
+
+	incoming_control.timestamp = mav_control_msg.timestamp;
+	incoming_control.command = mav_control_msg.command;
+	memcpy(incoming_control.args, mav_control_msg.args, sizeof(mav_control_msg.args));
+	_in_state_sharing_control_msg_pub.publish(incoming_control);
+}
+#endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
+
 void
 MavlinkReceiver::run()
 {

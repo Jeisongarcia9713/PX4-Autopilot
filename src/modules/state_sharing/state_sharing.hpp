@@ -47,15 +47,13 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/state_sharing_msg.h>
-#include <uORB/topics/mission_command.h>
+#include <uORB/topics/state_sharing_control.h>
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 #include "state_sharing/args_parser.hpp"
 #include "state_sharing/utils.hpp"
-#include "state_sharing/predictions.hpp"
 
 class StateSharing;
 class PublisherStateSharing : public px4::ScheduledWorkItem
@@ -91,8 +89,6 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	static int create_publish_task(int argc, char *argv[]);
-
 	/**
 	 * @brief Initialize the state sharing module.
 	 *
@@ -105,7 +101,7 @@ public:
 	 *
 	 * @return Current state sharing message with position and attitude information
 	 */
-	state_sharing_msg_s getStateSharing();
+	state_sharing_msg_s getStateSharing() const;
 
 	/**
 	 * @brief Check if this is the first time publishing.
@@ -121,25 +117,16 @@ public:
 	 */
 	void setFirstTimePublish(const bool &first_time_publish);
 
-	/**
-	 * @brief Check if outgoing state sharing should be published.
-	 *
-	 * @return true if outgoing state should be published, false otherwise
-	 */
-	bool shouldPublishOutgoingState() const;
-
 	int print_status() override;
 
 private:
 	void Run() override;
 
 	// Subscriptions
-	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};        // subscription that schedules StateSharing when updated
-	uORB::Subscription                 _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_odometry_sub{this, ORB_ID(vehicle_odometry)};
 	uORB::Subscription                 _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
-	uORB::SubscriptionCallbackWorkItem _mission_command_sub{this, ORB_ID(incoming_mission_command)};
+	uORB::SubscriptionCallbackWorkItem _state_sharing_control_sub{this, ORB_ID(state_sharing_control)};
 	uORB::Subscription                 _parameter_update_sub{ORB_ID(parameter_update)};
-
 
 	// Performance (perf) counters
 	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
@@ -149,15 +136,13 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IDENT>) _param_ident,
 		(ParamFloat<px4::params::SHARING_PERIOD>) _param_sharing_period,
-		(ParamInt<px4::params::USE_PREDICTIONS>) _param_use_predictions
+		(ParamFloat<px4::params::DELAY_START>) _param_delay_start
 	)
 
-	bool _start{false};
-	bool _first_time_publish{false};
+	bool _start{false}; ///< True if sharing is started
+	bool _first_time_publish{false}; ///< True if first publish
 	state_sharing_msg_s _state_sharing{};
-	Predictions _predictions;
 
 	// Publisher helper
 	PublisherStateSharing _publisher_state_sharing;
-
 };

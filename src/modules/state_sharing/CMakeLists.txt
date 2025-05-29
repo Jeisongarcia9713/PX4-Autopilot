@@ -35,14 +35,13 @@ px4_add_module(
 	MODULE modules__state_sharing
 	MAIN state_sharing
 	COMPILE_FLAGS
-		-DDEBUG_BUILD   # uncomment for PX4_DEBUG output
-		-O0             # uncomment when debugging
+		# -DDEBUG_BUILD   # uncomment for PX4_DEBUG output
+		# -O0             # uncomment when debugging
 	SRCS
 		state_sharing.cpp
 		state_sharing.hpp
 		args_parser.cpp
 		utils.cpp
-		predictions.cpp
 	DEPENDS
 		px4_work_queue
 	)
