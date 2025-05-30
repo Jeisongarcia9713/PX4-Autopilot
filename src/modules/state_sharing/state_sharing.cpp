@@ -138,7 +138,7 @@ void StateSharing::Run()
 				ArgParser args(state_sharing_control.args);
 				args.printArguments();
 				setParameter(args, "SHARING_PERIOD", _param_sharing_period.get());
-				setParameter(args, "DELAY_START", _param_sharing_period.get());
+				setParameter(args, "DELAY_START", _param_delay_start.get());
 			}
 		}
 

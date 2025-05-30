@@ -40,7 +40,6 @@
  * @brief Set a float parameter value from a ArgsParser object.
  *
  * @param[in] args ArgsParser object
- * @param[in] name_args Argument name in command line
  * @param[in] name Parameter name
  * @param[in] default_value Default value if not found
  */
@@ -51,11 +50,10 @@ void setParameter(const ArgParser &args,
 * @brief Set a int parameter value from a ArgsParser object.
 *
 * @param[in] args ArgsParser object
-* @param[in] name_args Argument name in command line
 * @param[in] name Parameter name
 * @param[in] default_value Default value if not found
 */
-void setParameter(const ArgParser &args, const char *name_args,
+void setParameter(const ArgParser &args,
 		  const char *name, int default_value = 0);
 
 /**
