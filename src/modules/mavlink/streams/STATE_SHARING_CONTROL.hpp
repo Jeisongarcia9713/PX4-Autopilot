@@ -34,7 +34,7 @@ public:
 private:
 	uORB::Subscription _out_state_sharing_control_sub{ORB_ID(outgoing_state_sharing_control)};
 
-	/* do not allow to copying this class */
+	/* do not allow to copy this class */
 	MavlinkStreamStateSharingControl(MavlinkStreamStateSharingControl &) = delete;
 	MavlinkStreamStateSharingControl &operator = (const MavlinkStreamStateSharingControl &) = delete;
 
@@ -47,15 +47,15 @@ protected:
 		bool updated = false;
 
 		if (_out_state_sharing_control_sub.updated()) {
-			state_sharing_control_s outgoing_control;
+			state_sharing_control_s outgoing_state_control;
 
-			if (_out_state_sharing_control_sub.copy(&outgoing_control)) {
-				mavlink_state_sharing_control_t mav_control_msg;
-				mav_control_msg.timestamp = outgoing_control.timestamp;
-				mav_control_msg.command = outgoing_control.command;
-				memcpy(mav_control_msg.args, outgoing_control.args, sizeof(mav_control_msg.args));
+			if (_out_state_sharing_control_sub.copy(&outgoing_state_control)) {
+				mavlink_state_sharing_control_t mav_state_control_msg;
+				mav_state_control_msg.timestamp = outgoing_state_control.timestamp;
+				mav_state_control_msg.command = outgoing_state_control.command;
+				memcpy(mav_state_control_msg.args, outgoing_state_control.args, sizeof(mav_state_control_msg.args));
 
-				mavlink_msg_state_sharing_control_send_struct(_mavlink->get_channel(), &mav_control_msg);
+				mavlink_msg_state_sharing_control_send_struct(_mavlink->get_channel(), &mav_state_control_msg);
 				updated = true;
 			}
 		}

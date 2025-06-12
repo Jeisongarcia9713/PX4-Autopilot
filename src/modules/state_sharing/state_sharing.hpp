@@ -64,7 +64,32 @@ public:
 
 	PublisherStateSharing(StateSharing *parent, const px4::wq_config_t &config);
 
+	/**
+	 * @brief Start the state sharing publisher with specified timing parameters.
+	 *
+	 * @param period The period between state sharing messages in microseconds
+	 * @param delay The initial delay before starting to publish in microseconds
+	 */
+	void start(double period, double delay);
+
+	/**
+	 * @brief Stop the state sharing publisher.
+	 *
+	 * Stops the publisher and clears the scheduled work item.
+	 */
+	void stop();
+
+	/**
+	 * @brief Check if the publisher is currently running.
+	 *
+	 * @return true if the publisher is started and running, false otherwise
+	 */
+	bool is_started();
+
 private:
+	bool _first_time_publish{false};
+	bool _started{false}; ///< True if sharing is started
+
 	void Run() override;
 
 	// Publications
@@ -92,9 +117,15 @@ public:
 	/**
 	 * @brief Initialize the state sharing module.
 	 *
+	 * This function initializes the state sharing module by:
+	 * - Registering callbacks for vehicle odometry and state sharing control
+	 * - Setting up the frame ID from system parameters
+	 * - Optionally starting the publisher if start_publishing is true
+	 *
+	 * @param start_publishing If true, starts the publisher immediately after initialization
 	 * @return true if initialization successful, false otherwise
 	 */
-	bool init();
+	bool init(bool start_publishing);
 
 	/**
 	 * @brief Get the current state sharing message.
@@ -104,18 +135,19 @@ public:
 	state_sharing_msg_s getStateSharing() const;
 
 	/**
-	 * @brief Check if this is the first time publishing.
+	 * @brief Start the state sharing publisher.
 	 *
-	 * @return true if this is the first publish, false otherwise
+	 * Starts the publisher with the configured sharing period and delay start parameters.
+	 * The publisher will begin sending state sharing messages at the specified interval.
 	 */
-	bool isFirstTimePublish() const;
+	void start_publisher();
 
 	/**
-	 * @brief Set the first time publish flag.
+	 * @brief Stop the state sharing publisher.
 	 *
-	 * @param[in] first_time_publish Value to set the flag to
+	 * Stops the publisher from sending state sharing messages.
 	 */
-	void setFirstTimePublish(const bool &first_time_publish);
+	void stop_publisher();
 
 	int print_status() override;
 
@@ -134,13 +166,11 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::IDENT>) _param_ident,
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamFloat<px4::params::SHARING_PERIOD>) _param_sharing_period,
 		(ParamFloat<px4::params::DELAY_START>) _param_delay_start
 	)
 
-	bool _start{false}; ///< True if sharing is started
-	bool _first_time_publish{false}; ///< True if first publish
 	state_sharing_msg_s _state_sharing{};
 
 	// Publisher helper

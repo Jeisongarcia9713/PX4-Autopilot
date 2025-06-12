@@ -34,7 +34,7 @@ public:
 private:
 	uORB::Subscription		_out_state_sharing_msg_sub{ORB_ID(outgoing_state_sharing)};
 
-	/* do not allow to copying this class */
+	/* do not allow to copy this class */
 	MavlinkStreamStateSharing(MavlinkStreamStateSharing &) = delete;
 	MavlinkStreamStateSharing &operator = (const MavlinkStreamStateSharing &) = delete;
 
@@ -58,9 +58,6 @@ protected:
 				mav_state_sharing_msg.global_position_lon = outgoing_state.global_position_lon;
 				mav_state_sharing_msg.global_position_lat = outgoing_state.global_position_lat;
 				mav_state_sharing_msg.global_position_alt = outgoing_state.global_position_alt;
-				mav_state_sharing_msg.roll = outgoing_state.roll;
-				mav_state_sharing_msg.pitch = outgoing_state.pitch;
-				mav_state_sharing_msg.yaw = outgoing_state.yaw;
 				memcpy(mav_state_sharing_msg.q, outgoing_state.q, sizeof(outgoing_state.q));
 
 				//Send the message

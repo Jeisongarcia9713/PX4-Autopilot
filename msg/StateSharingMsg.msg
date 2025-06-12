@@ -8,10 +8,6 @@ float32 global_position_lon
 float32 global_position_lat
 float32 global_position_alt
 
-# cartesian angles based on front right down x,y,z axis
-float32 roll
-float32 pitch
-float32 yaw
 # quaternion
 float32[4] q
 

@@ -3153,9 +3153,6 @@ MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
 	incoming_state.global_position_lon = mav_state_sharing_msg.global_position_lon;
 	incoming_state.global_position_lat = mav_state_sharing_msg.global_position_lat;
 	incoming_state.global_position_alt = mav_state_sharing_msg.global_position_alt;
-	incoming_state.roll = mav_state_sharing_msg.roll;
-	incoming_state.pitch = mav_state_sharing_msg.pitch;
-	incoming_state.yaw = mav_state_sharing_msg.yaw;
 	memcpy(incoming_state.q, mav_state_sharing_msg.q, sizeof(mav_state_sharing_msg.q));
 	_in_state_sharing_msg_pub.publish(incoming_state);
 }

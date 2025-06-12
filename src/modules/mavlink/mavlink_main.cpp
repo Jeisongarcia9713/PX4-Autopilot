@@ -996,6 +996,8 @@ void Mavlink::init_udp()
 		return;
 	}
 
+#if defined(__PX4_POSIX)
+
 	/**
 	 * Enable multiple MAVLink sockets to bind to the same port (SO_REUSEADDR).
 	 * This allows multiple instances or tools (e.g., QGroundControl, loggers) to receive data via broadcast
@@ -1009,6 +1011,8 @@ void Mavlink::init_udp()
 			return;
 		}
 	}
+
+#endif // __PX4_POSIX
 
 	if (bind(_socket_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 		PX4_WARN("bind failed: %s", strerror(errno));

@@ -54,10 +54,3 @@ PARAM_DEFINE_FLOAT(SHARING_PERIOD, 1.0);
  * @group state_sharing
  */
 PARAM_DEFINE_FLOAT(DELAY_START, 0.0);
-
-/**
- * Identification of the agent
- *
- * @group state_sharing
- */
-PARAM_DEFINE_INT32(IDENT, 1);

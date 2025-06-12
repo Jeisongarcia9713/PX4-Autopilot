@@ -33,7 +33,7 @@
 
 #include "state_sharing.hpp"
 #include <px4_platform_common/events.h>
-
+#include <px4_platform_common/getopt.h>
 
 using namespace time_literals;
 
@@ -52,7 +52,7 @@ StateSharing::~StateSharing()
 	perf_free(_loop_interval_perf);
 }
 
-bool StateSharing::init()
+bool StateSharing::init(bool start_publishing)
 {
 	for (int i = 0 ; i < kNumRegisterTries ; i++) {
 		if (!_vehicle_odometry_sub.registerCallback()) {
@@ -68,6 +68,12 @@ bool StateSharing::init()
 		}
 
 		events::send(events::ID("state_sharing_start"), events::Log::Info, "[STATE_SHARING]: started!");
+		_state_sharing.frame_id = _param_mav_sys_id.get();
+
+		if (start_publishing) {
+			start_publisher();
+		}
+
 		return true;
 	}
 
@@ -81,20 +87,10 @@ state_sharing_msg_s StateSharing::getStateSharing() const
 	return _state_sharing;
 }
 
-bool StateSharing::isFirstTimePublish() const
-{
-	return _first_time_publish;
-}
-
-void StateSharing::setFirstTimePublish(const bool &first_time_publish)
-{
-	_first_time_publish = first_time_publish;
-}
-
 void StateSharing::Run()
 {
 	if (should_exit()) {
-		_publisher_state_sharing.ScheduleClear();
+		_publisher_state_sharing.stop();
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
@@ -108,30 +104,17 @@ void StateSharing::Run()
 
 		if (_state_sharing_control_sub.copy(&state_sharing_control)) {
 			if (state_sharing_control.command == state_sharing_control_s::COMMAND_START) {
-				PX4_DEBUG("Received state sharing control [%f] %d",
-					  getRealTimeNs() / 1e9,
-					  state_sharing_control.command);
 
-				if (!_start) {
-					_start = true;
-					_first_time_publish = true;
-					_state_sharing.frame_id = _param_ident.get();
-					_publisher_state_sharing.ScheduleOnInterval(
-						(double)_param_sharing_period.get() * 1e6,
-						(double)_param_delay_start.get() * 1e6
-					);
-				}
+				start_publisher();
+				PX4_DEBUG("Received state sharing control [%f] START",
+					  getRealTimeNs() / 1e9);
 			}
 
 			if (state_sharing_control.command == state_sharing_control_s::COMMAND_STOP) {
-				if (_start) {
-					_start = false;
-					_publisher_state_sharing.ScheduleClear();
-				}
 
-				PX4_DEBUG("Received state sharing control [%f] %d",
-					  getRealTimeNs() / 1e9,
-					  state_sharing_control.command);
+				_publisher_state_sharing.stop();
+				PX4_DEBUG("Received state sharing control [%f] STOP",
+					  getRealTimeNs() / 1e9);
 			}
 
 			if (state_sharing_control.command == state_sharing_control_s::COMMAND_UPDATE_PARAMS) {
@@ -144,13 +127,14 @@ void StateSharing::Run()
 
 	}
 
-	if (!_start) {
+	if (!_publisher_state_sharing.is_started()) {
 		// Check if parameters have changed
 		if (_parameter_update_sub.updated()) {
 			// clear update
 			parameter_update_s param_update;
 			_parameter_update_sub.copy(&param_update);
 			updateParams(); // update module parameters (in DEFINE_PARAMETERS)
+			_state_sharing.frame_id = _param_mav_sys_id.get();
 		}
 
 	} else {
@@ -169,10 +153,6 @@ void StateSharing::Run()
 
 			if (_vehicle_odometry_sub.copy(&vehicle_odometry)) {
 				memcpy(&_state_sharing.q, &vehicle_odometry.q, sizeof(_state_sharing.q));
-				matrix::Eulerf euler{matrix::Quatf{vehicle_odometry.q}};
-				_state_sharing.roll = euler(0);
-				_state_sharing.pitch = euler(1);
-				_state_sharing.yaw = euler(2);
 			}
 		}
 	}
@@ -180,9 +160,46 @@ void StateSharing::Run()
 	perf_end(_loop_perf);
 }
 
+void StateSharing::start_publisher()
+{
+	_publisher_state_sharing.start(
+		(double)_param_sharing_period.get() * 1e6,
+		(double)_param_delay_start.get() * 1e6
+	);
+}
+
+void StateSharing::stop_publisher()
+{
+	_publisher_state_sharing.stop();
+}
+
 PublisherStateSharing::PublisherStateSharing(StateSharing *parent, const px4::wq_config_t &config)
 	: ScheduledWorkItem(kPublisherWorkItemName, config), _parent(parent)
 {
+}
+
+void PublisherStateSharing::start(double period, double delay)
+{
+
+	if (!_started) {
+		_first_time_publish = true;
+		_started = true;
+		ScheduleOnInterval(period, delay);
+
+	} else {
+		PX4_WARN("The publisher is already started!");
+	}
+}
+
+void PublisherStateSharing::stop()
+{
+	_started = false;
+	ScheduleClear();
+}
+
+bool PublisherStateSharing::is_started()
+{
+	return _started;
 }
 
 void PublisherStateSharing::Run()
@@ -197,8 +214,8 @@ void PublisherStateSharing::Run()
 	_outgoing_state_sharing_pub.publish(state_sharing);
 	_incoming_state_sharing_pub.publish(state_sharing);
 
-	if (_parent->isFirstTimePublish()) {
-		_parent->setFirstTimePublish(false);
+	if (_first_time_publish) {
+		_first_time_publish = false;
 		PX4_DEBUG("First state sharing published on [%f]",
 			  getRealTimeNs() / 1e9);
 	}
@@ -208,11 +225,28 @@ int StateSharing::task_spawn(int argc, char *argv[])
 {
 	StateSharing *instance = new StateSharing();
 
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	bool start_publishing = false;
+
+	while ((ch = px4_getopt(argc, argv, "s", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 's':
+			start_publishing = true;
+			break;
+
+		default:
+			PX4_WARN("unrecognized flag");
+			break;
+		}
+	}
+
 	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
-		if (instance->init()) {
+		if (instance->init(start_publishing)) {
 			return PX4_OK;
 		}
 
@@ -237,6 +271,21 @@ int StateSharing::print_status()
 
 int StateSharing::custom_command(int argc, char *argv[])
 {
+	if (!is_running()) {
+		print_usage("not running");
+		return PX4_ERROR;
+	}
+
+	if (!strcmp(argv[0], "start_publishing")) {
+		get_instance()->start_publisher();
+		return PX4_OK;
+	}
+
+	if (!strcmp(argv[0], "stop_publishing")) {
+		get_instance()->stop_publisher();
+		return PX4_OK;
+	}
+
 	return print_usage("unknown command");
 }
 
@@ -257,7 +306,7 @@ multi-agent coordination, distributed control, or fleet monitoring.
 
 #### Features
 
-- **State Aggregation:** Collects relevant state data from core PX4 topics (e.g., vehicle position, odometry).
+- **State Aggregation:** Collects relevant state data from core uORB topics (vehicle_global_position, vehicle_odometry).
 - **uORB Publication:** Publishes the aggregated state using a dedicated uORB message (`state_sharing_msg`), making it
 available to other modules and communication bridges.
 - **External Sharing:** Facilitates sharing of state information with other agents or ground stations via MAVLink or custom
@@ -265,8 +314,8 @@ available to other modules and communication bridges.
 - **Runtime Control:** The module's operation can be dynamically managed using the `state_sharing_control_msg` uORB topic.
  Supported commands include:
 - **Start/Stop:** Begin or halt state sharing.
-- **Parameter Update:** Adjust sharing frequency, startup delay, and other parameters at runtime.
-- **Parameterization:** All key behaviors (such as sharing period, startup delay, and agent ID) are configurable via PX4 parameters.
+- **Parameter Update:** Adjust sharing period, startup delay, and other parameters at runtime.
+- **Parameterization:** All key behaviors (such as sharing period, startup delay) are configurable via PX4 parameters.
 
 #### Use Cases
 
@@ -283,7 +332,9 @@ or ground control stations to start/stop state sharing or update parameters with
 
 	PRINT_MODULE_USAGE_NAME("state_sharing", "state_sharing");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the execution of the module");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "Enable publishing of state sharing messages from the start.", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start_publishing", "Begin publishing of state sharing messages.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop_publishing", "Cease publishing of state sharing messages.");
 
 	return 0;
 }
