@@ -3148,7 +3148,7 @@ MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
 	mavlink_msg_state_sharing_decode(msg, &mav_state_sharing_msg);
 
 	incoming_state.timestamp = mav_state_sharing_msg.timestamp;
-	incoming_state.timestamp_drone = mav_state_sharing_msg.timestamp_drone;
+	incoming_state.timestamp_real_time = mav_state_sharing_msg.timestamp_real_time;
 	incoming_state.frame_id = mav_state_sharing_msg.frame_id;
 	incoming_state.global_position_lon = mav_state_sharing_msg.global_position_lon;
 	incoming_state.global_position_lat = mav_state_sharing_msg.global_position_lat;

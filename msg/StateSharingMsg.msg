@@ -1,6 +1,6 @@
 # Customized statesharing message
 uint64 timestamp
-uint64 timestamp_drone
+uint64 timestamp_real_time
 uint16 frame_id
 
 # global position coordinates

@@ -53,7 +53,7 @@ protected:
 			if (_out_state_sharing_msg_sub.copy(&outgoing_state)) {
 				mavlink_state_sharing_t mav_state_sharing_msg;
 				mav_state_sharing_msg.timestamp = outgoing_state.timestamp;
-				mav_state_sharing_msg.timestamp_drone = outgoing_state.timestamp_drone;
+				mav_state_sharing_msg.timestamp_real_time = outgoing_state.timestamp_real_time;
 				mav_state_sharing_msg.frame_id = outgoing_state.frame_id;
 				mav_state_sharing_msg.global_position_lon = outgoing_state.global_position_lon;
 				mav_state_sharing_msg.global_position_lat = outgoing_state.global_position_lat;

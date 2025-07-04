@@ -209,8 +209,8 @@ void PublisherStateSharing::Run()
 	}
 
 	auto state_sharing = _parent->getStateSharing();
-	state_sharing.timestamp = getRealTimeNs();
-	state_sharing.timestamp_drone = hrt_absolute_time();
+	state_sharing.timestamp = hrt_absolute_time();
+	state_sharing.timestamp_real_time = getRealTimeNs();
 	_outgoing_state_sharing_pub.publish(state_sharing);
 	_incoming_state_sharing_pub.publish(state_sharing);
 
