@@ -73,6 +73,9 @@ publications:
   - topic: /fmu/out/vehicle_command_ack
     type: px4_msgs::msg::VehicleCommandAck
 
+  - topic: /fmu/out/vehicle_attitude
+    type: px4_msgs::msg::VehicleAttitude
+
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
     rate_limit: 50.
@@ -93,12 +96,18 @@ publications:
     type: px4_msgs::msg::VehicleStatus
     rate_limit: 5.
 
+  - topic: /fmu/out/mission_result
+    type: px4_msgs::msg::MissionResult
+
+  - topic: /fmu/out/vehicle_command
+    type: px4_msgs::msg::VehicleCommand
+
   - topic: /fmu/out/airspeed_validated
     type: px4_msgs::msg::AirspeedValidated
     rate_limit: 50.
 
-  - topic: /fmu/out/vtol_vehicle_status
-    type: px4_msgs::msg::VtolVehicleStatus
+  - topic: /fmu/out/airspeed_wind
+    type: px4_msgs::msg::AirspeedWind
 
   - topic: /fmu/out/home_position
     type: px4_msgs::msg::HomePosition
@@ -107,6 +116,11 @@ publications:
   - topic: /fmu/out/wind
     type: px4_msgs::msg::Wind
     rate_limit: 1.
+  - topic: /fmu/out/incoming_state_sharing
+    type: px4_msgs::msg::StateSharingMsg
+
+  - topic: /fmu/out/outgoing_state_sharing
+    type: px4_msgs::msg::StateSharingMsg
 
   - topic: /fmu/out/gimbal_device_attitude_status
     type: px4_msgs::msg::GimbalDeviceAttitudeStatus
@@ -205,6 +219,9 @@ subscriptions:
 
   - topic: /fmu/in/sensor_gnss
     type: px4_msgs::msg::SensorGnss
+
+  - topic: /fmu/in/incoming_state_sharing_control
+    type: px4_msgs::msg::StateSharingControl
 
   - topic: /fmu/in/fixed_wing_longitudinal_setpoint
     type: px4_msgs::msg::FixedWingLongitudinalSetpoint
