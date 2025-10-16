@@ -1,5 +1,4 @@
-#ifndef STATE_SHARING_CONTROL_HPP
-#define STATE_SHARING_CONTROL_HPP
+#pragma once
 #include <uORB/topics/state_sharing_control.h>
 
 #if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL)
@@ -65,4 +64,3 @@ protected:
 
 };
 #endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
-#endif

@@ -68,7 +68,7 @@ bool StateSharing::init(bool start_publishing)
 		}
 
 		events::send(events::ID("state_sharing_start"), events::Log::Info, "[STATE_SHARING]: started!");
-		_state_sharing.frame_id = _param_mav_sys_id.get();
+		_state_sharing.agent_id = _param_mav_sys_id.get();
 
 		if (start_publishing) {
 			start_publisher();
@@ -134,7 +134,7 @@ void StateSharing::Run()
 			parameter_update_s param_update;
 			_parameter_update_sub.copy(&param_update);
 			updateParams(); // update module parameters (in DEFINE_PARAMETERS)
-			_state_sharing.frame_id = _param_mav_sys_id.get();
+			_state_sharing.agent_id = _param_mav_sys_id.get();
 		}
 
 	} else {

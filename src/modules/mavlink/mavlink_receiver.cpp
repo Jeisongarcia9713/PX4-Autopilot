@@ -3135,7 +3135,7 @@ void MavlinkReceiver::handle_message_open_drone_id_system(
 	_open_drone_id_system_pub.publish(odid_system);
 }
 
-#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined (CONFIG_MODULES_STATE_SHARING)
+#if defined(MAVLINK_MSG_ID_STATE_SHARING) && defined(CONFIG_MODULES_STATE_SHARING)
 void
 MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
 {
@@ -3149,7 +3149,7 @@ MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
 
 	incoming_state.timestamp = mav_state_sharing_msg.timestamp;
 	incoming_state.timestamp_real_time = mav_state_sharing_msg.timestamp_real_time;
-	incoming_state.frame_id = mav_state_sharing_msg.frame_id;
+	incoming_state.agent_id = mav_state_sharing_msg.agent_id;
 	incoming_state.global_position_lon = mav_state_sharing_msg.global_position_lon;
 	incoming_state.global_position_lat = mav_state_sharing_msg.global_position_lat;
 	incoming_state.global_position_alt = mav_state_sharing_msg.global_position_alt;
@@ -3158,7 +3158,7 @@ MavlinkReceiver::handle_message_state_sharing(mavlink_message_t *msg)
 }
 #endif //MAVLINK_MSG_ID_STATE_SHARING
 
-#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined (CONFIG_MODULES_STATE_SHARING)
+#if defined(MAVLINK_MSG_ID_STATE_SHARING_CONTROL) && defined(CONFIG_MODULES_STATE_SHARING)
 void
 MavlinkReceiver::handle_message_state_sharing_control(mavlink_message_t *msg)
 {

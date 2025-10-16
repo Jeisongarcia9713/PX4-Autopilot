@@ -1,5 +1,5 @@
-#ifndef STATE_SHARING_HPP
-#define STATE_SHARING_HPP
+#pragma once
+
 #include <uORB/topics/state_sharing_msg.h>
 
 #if defined(MAVLINK_MSG_ID_STATE_SHARING)
@@ -54,7 +54,7 @@ protected:
 				mavlink_state_sharing_t mav_state_sharing_msg;
 				mav_state_sharing_msg.timestamp = outgoing_state.timestamp;
 				mav_state_sharing_msg.timestamp_real_time = outgoing_state.timestamp_real_time;
-				mav_state_sharing_msg.frame_id = outgoing_state.frame_id;
+				mav_state_sharing_msg.agent_id = outgoing_state.agent_id;
 				mav_state_sharing_msg.global_position_lon = outgoing_state.global_position_lon;
 				mav_state_sharing_msg.global_position_lat = outgoing_state.global_position_lat;
 				mav_state_sharing_msg.global_position_alt = outgoing_state.global_position_alt;
@@ -72,4 +72,4 @@ protected:
 
 };
 #endif //MAVLINK_MSG_ID_STATE_SHARING
-#endif
+
