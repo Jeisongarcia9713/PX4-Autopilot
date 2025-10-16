@@ -1,5 +1,7 @@
 #pragma once
 
+#define STATE_SHARING_HPP
+
 #include <uORB/topics/state_sharing_msg.h>
 
 #if defined(MAVLINK_MSG_ID_STATE_SHARING)
