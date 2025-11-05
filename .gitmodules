@@ -1,6 +1,6 @@
 [submodule "src/modules/mavlink/mavlink"]
 	path = src/modules/mavlink/mavlink
-	url = git@bitbucket.org:autonomouscv/gnc_mavlink.git
+	url = https://github.com/Jeisongarcia9713/mavlink.git
 	branch = master
 [submodule "Tools/simulation/jmavsim/jMAVSim"]
 	path = Tools/simulation/jmavsim/jMAVSim
