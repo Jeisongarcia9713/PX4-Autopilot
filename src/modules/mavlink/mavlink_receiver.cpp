@@ -3167,12 +3167,12 @@ MavlinkReceiver::handle_message_state_sharing_control(mavlink_message_t *msg)
 	}
 
 	state_sharing_control_s incoming_control{};
-	mavlink_state_sharing_control_t mav_control_msg;
-	mavlink_msg_state_sharing_control_decode(msg, &mav_control_msg);
+	mavlink_state_sharing_control_t mav_state_sharing_control_msg;
+	mavlink_msg_state_sharing_control_decode(msg, &mav_state_sharing_control_msg);
 
-	incoming_control.timestamp = mav_control_msg.timestamp;
-	incoming_control.command = mav_control_msg.command;
-	memcpy(incoming_control.args, mav_control_msg.args, sizeof(mav_control_msg.args));
+	incoming_control.timestamp = mav_state_sharing_control_msg.timestamp;
+	incoming_control.command = mav_state_sharing_control_msg.command;
+	memcpy(incoming_control.args, mav_state_sharing_control_msg.args, sizeof(mav_state_sharing_control_msg.args));
 	_in_state_sharing_control_msg_pub.publish(incoming_control);
 }
 #endif //MAVLINK_MSG_ID_STATE_SHARING_CONTROL
