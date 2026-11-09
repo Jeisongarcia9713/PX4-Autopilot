@@ -54,3 +54,30 @@ PARAM_DEFINE_FLOAT(SHARING_PERIOD, 1.0);
  * @group state_sharing
  */
 PARAM_DEFINE_FLOAT(DELAY_START, 0.0);
+
+/**
+ * State sharing telemetry data flags bitmask
+ *
+ * Bitmask defining which telemetry fields are broadcast:
+ * 0: Global Position (lat, lon, alt)
+ * 1: NED ground velocity (vx, vy, vz)
+ * 2: Quaternion attitude (q)
+ * 3: NED ground acceleration (ax, ay, az)
+ * 4: Auxiliary field 1 (aux[0])
+ * 5: Auxiliary field 2 (aux[1])
+ * 6: Auxiliary field 3 (aux[2])
+ * 7: Auxiliary field 4 (aux[3])
+ *
+ * @bit 0 Global Position
+ * @bit 1 Velocity
+ * @bit 2 Attitude
+ * @bit 3 Acceleration
+ * @bit 4 Aux 1
+ * @bit 5 Aux 2
+ * @bit 6 Aux 3
+ * @bit 7 Aux 4
+ * @min 1
+ * @max 255
+ * @group state_sharing
+ */
+PARAM_DEFINE_INT32(SHARING_FLAGS, 5);

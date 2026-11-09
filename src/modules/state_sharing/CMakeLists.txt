@@ -40,8 +40,6 @@ px4_add_module(
 	SRCS
 		state_sharing.cpp
 		state_sharing.hpp
-		args_parser.cpp
-		utils.cpp
 	DEPENDS
 		px4_work_queue
 	)

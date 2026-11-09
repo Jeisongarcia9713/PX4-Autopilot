@@ -68,7 +68,8 @@ bool StateSharing::init(bool start_publishing)
 		}
 
 		events::send(events::ID("state_sharing_start"), events::Log::Info, "[STATE_SHARING]: started!");
-		_state_sharing.agent_id = _param_mav_sys_id.get();
+		_state_sharing.sysid = _param_mav_sys_id.get();
+		update_data_flags(_param_sharing_flags.get());
 
 		if (start_publishing) {
 			start_publisher();
@@ -80,6 +81,49 @@ bool StateSharing::init(bool start_publishing)
 	events::send(events::ID("state_sharing_initialization"),
 		     events::Log::Error, "[STATE_SHARING]: Register uORB callbacks failed, state sharing didn't start!");
 	return false;
+}
+
+void StateSharing::update_data_flags(uint16_t flags)
+{
+	if (_state_sharing.data_flags == flags) {
+		return;
+	}
+
+	_state_sharing.data_flags = flags;
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_POSITION)) {
+		_state_sharing.global_position_lat = 0;
+		_state_sharing.global_position_lon = 0;
+		_state_sharing.global_position_alt = 0.0f;
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_VELOCITY)) {
+		memset(_state_sharing.velocity, 0, sizeof(_state_sharing.velocity));
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_ATTITUDE)) {
+		memset(_state_sharing.q, 0, sizeof(_state_sharing.q));
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_ACCELERATION)) {
+		memset(_state_sharing.acceleration, 0, sizeof(_state_sharing.acceleration));
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_AUX1)) {
+		_state_sharing.aux[0] = 0.0f;
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_AUX2)) {
+		_state_sharing.aux[1] = 0.0f;
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_AUX3)) {
+		_state_sharing.aux[2] = 0.0f;
+	}
+
+	if (!(flags & state_sharing_control_s::DATA_FLAG_AUX4)) {
+		_state_sharing.aux[3] = 0.0f;
+	}
 }
 
 state_sharing_msg_s StateSharing::getStateSharing() const
@@ -103,28 +147,44 @@ void StateSharing::Run()
 		state_sharing_control_s state_sharing_control;
 
 		if (_state_sharing_control_sub.copy(&state_sharing_control)) {
-			if (state_sharing_control.command == state_sharing_control_s::COMMAND_START) {
+			// target_system 0 is a broadcast, otherwise the command is only for the matching vehicle
+			const bool for_this_vehicle = (state_sharing_control.target_system == 0)
+						      || (state_sharing_control.target_system == _param_mav_sys_id.get());
 
-				start_publisher();
-				PX4_DEBUG("Received state sharing control [%f] START",
-					  getRealTimeNs() / 1e9);
-			}
+			if (for_this_vehicle) {
+				if (state_sharing_control.command == state_sharing_control_s::COMMAND_START) {
+					if (state_sharing_control.data_flags > 0) {
+						_param_sharing_flags.commit_no_notification(state_sharing_control.data_flags);
+						update_data_flags(state_sharing_control.data_flags);
+					}
 
-			if (state_sharing_control.command == state_sharing_control_s::COMMAND_STOP) {
+					start_publisher(
+						state_sharing_control.sharing_period,
+						state_sharing_control.delay_start,
+						state_sharing_control.sync_epoch_us
+					);
+					PX4_DEBUG("Received state sharing control [%f] START", (double)(getRealTimeNs() / 1e9));
 
-				_publisher_state_sharing.stop();
-				PX4_DEBUG("Received state sharing control [%f] STOP",
-					  getRealTimeNs() / 1e9);
-			}
+				} else if (state_sharing_control.command == state_sharing_control_s::COMMAND_STOP) {
+					_publisher_state_sharing.stop();
+					PX4_DEBUG("Received state sharing control [%f] STOP", (double)(getRealTimeNs() / 1e9));
 
-			if (state_sharing_control.command == state_sharing_control_s::COMMAND_UPDATE_PARAMS) {
-				ArgParser args(state_sharing_control.args);
-				args.printArguments();
-				setParameter(args, "SHARING_PERIOD", _param_sharing_period.get());
-				setParameter(args, "DELAY_START", _param_delay_start.get());
+				} else if (state_sharing_control.command == state_sharing_control_s::COMMAND_UPDATE_PARAMS) {
+					if (state_sharing_control.data_flags > 0) {
+						_param_sharing_flags.commit_no_notification(state_sharing_control.data_flags);
+						update_data_flags(state_sharing_control.data_flags);
+					}
+
+					if (state_sharing_control.sharing_period > 0.0f) {
+						_param_sharing_period.commit_no_notification(state_sharing_control.sharing_period);
+					}
+
+					if (state_sharing_control.delay_start >= 0.0f) {
+						_param_delay_start.commit_no_notification(state_sharing_control.delay_start);
+					}
+				}
 			}
 		}
-
 	}
 
 	if (!_publisher_state_sharing.is_started()) {
@@ -134,25 +194,48 @@ void StateSharing::Run()
 			parameter_update_s param_update;
 			_parameter_update_sub.copy(&param_update);
 			updateParams(); // update module parameters (in DEFINE_PARAMETERS)
-			_state_sharing.agent_id = _param_mav_sys_id.get();
+			_state_sharing.sysid = _param_mav_sys_id.get();
+			update_data_flags(_param_sharing_flags.get());
 		}
 
 	} else {
-		if (_vehicle_global_position_sub.updated()) {
-			vehicle_global_position_s vehicle_global_position;
+		// Sample sources gated by active data flags
+		if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_POSITION) {
+			if (_vehicle_global_position_sub.updated()) {
+				vehicle_global_position_s vehicle_global_position;
 
-			if (_vehicle_global_position_sub.copy(&vehicle_global_position)) {
-				_state_sharing.global_position_lon = vehicle_global_position.lon;
-				_state_sharing.global_position_lat = vehicle_global_position.lat;
-				_state_sharing.global_position_alt = vehicle_global_position.alt;
+				if (_vehicle_global_position_sub.copy(&vehicle_global_position)) {
+					_state_sharing.global_position_lat = static_cast<int32_t>(std::round(vehicle_global_position.lat * 1e7));
+					_state_sharing.global_position_lon = static_cast<int32_t>(std::round(vehicle_global_position.lon * 1e7));
+					_state_sharing.global_position_alt = vehicle_global_position.alt;
+				}
 			}
 		}
 
-		if (_vehicle_odometry_sub.updated()) {
-			vehicle_odometry_s vehicle_odometry;
+		if (_state_sharing.data_flags & (state_sharing_control_s::DATA_FLAG_ATTITUDE | state_sharing_control_s::DATA_FLAG_VELOCITY)) {
+			if (_vehicle_odometry_sub.updated()) {
+				vehicle_odometry_s vehicle_odometry;
 
-			if (_vehicle_odometry_sub.copy(&vehicle_odometry)) {
-				memcpy(&_state_sharing.q, &vehicle_odometry.q, sizeof(_state_sharing.q));
+				if (_vehicle_odometry_sub.copy(&vehicle_odometry)) {
+					if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_ATTITUDE) {
+						memcpy(&_state_sharing.q, &vehicle_odometry.q, sizeof(_state_sharing.q));
+					}
+					if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_VELOCITY) {
+						memcpy(&_state_sharing.velocity, &vehicle_odometry.velocity, sizeof(_state_sharing.velocity));
+					}
+				}
+			}
+		}
+
+		if (_state_sharing.data_flags & state_sharing_control_s::DATA_FLAG_ACCELERATION) {
+			if (_vehicle_local_position_sub.updated()) {
+				vehicle_local_position_s vehicle_local_position;
+
+				if (_vehicle_local_position_sub.copy(&vehicle_local_position)) {
+					_state_sharing.acceleration[0] = vehicle_local_position.ax;
+					_state_sharing.acceleration[1] = vehicle_local_position.ay;
+					_state_sharing.acceleration[2] = vehicle_local_position.az;
+				}
 			}
 		}
 	}
@@ -162,9 +245,18 @@ void StateSharing::Run()
 
 void StateSharing::start_publisher()
 {
+	start_publisher(_param_sharing_period.get(), _param_delay_start.get(), 0);
+}
+
+void StateSharing::start_publisher(float period_s, float delay_s, uint64_t sync_epoch_us)
+{
+	const float period = (period_s > 0.0f) ? period_s : _param_sharing_period.get();
+	const float delay = (delay_s >= 0.0f) ? delay_s : _param_delay_start.get();
+
 	_publisher_state_sharing.start(
-		(double)_param_sharing_period.get() * 1e6,
-		(double)_param_delay_start.get() * 1e6
+		(double)period * 1e6,
+		(double)delay * 1e6,
+		sync_epoch_us
 	);
 }
 
@@ -178,13 +270,32 @@ PublisherStateSharing::PublisherStateSharing(StateSharing *parent, const px4::wq
 {
 }
 
-void PublisherStateSharing::start(double period, double delay)
+void PublisherStateSharing::start(double period_us, double delay_us, uint64_t sync_epoch_us)
 {
 
 	if (!_started) {
+		uint64_t initial_delay_us = (delay_us > 0.0) ? static_cast<uint64_t>(delay_us) : 0;
+
+		if (sync_epoch_us > 0) {
+			const uint64_t now_real_time_us = StateSharing::getRealTimeUs();
+
+			if (sync_epoch_us > now_real_time_us) {
+				// Schedule the first tick at the future epoch plus the vehicle offset delay
+				initial_delay_us += (sync_epoch_us - now_real_time_us);
+
+			} else {
+				PX4_WARN("sync_epoch_us is in the past! Starting with base delay.");
+			}
+		}
+
+		if (initial_delay_us > UINT32_MAX) {
+			PX4_WARN("Start delay exceeds the maximum supported value, clamping.");
+			initial_delay_us = UINT32_MAX;
+		}
+
 		_first_time_publish = true;
 		_started = true;
-		ScheduleOnInterval(period, delay);
+		ScheduleOnInterval(static_cast<uint32_t>(period_us), static_cast<uint32_t>(initial_delay_us));
 
 	} else {
 		PX4_WARN("The publisher is already started!");
@@ -210,14 +321,14 @@ void PublisherStateSharing::Run()
 
 	auto state_sharing = _parent->getStateSharing();
 	state_sharing.timestamp = hrt_absolute_time();
-	state_sharing.timestamp_real_time = getRealTimeNs();
+	state_sharing.timestamp_real_time = StateSharing::getRealTimeUs();
 	_outgoing_state_sharing_pub.publish(state_sharing);
 	_incoming_state_sharing_pub.publish(state_sharing);
 
 	if (_first_time_publish) {
 		_first_time_publish = false;
 		PX4_DEBUG("First state sharing published on [%f]",
-			  getRealTimeNs() / 1e9);
+			  (double)(StateSharing::getRealTimeNs() / 1e9));
 	}
 }
 

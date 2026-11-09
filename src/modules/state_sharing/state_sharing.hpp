@@ -41,7 +41,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
-#include <matrix/math.hpp>
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -49,11 +48,9 @@
 #include <uORB/topics/state_sharing_msg.h>
 #include <uORB/topics/state_sharing_control.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_global_position.h>
-
-#include "state_sharing/args_parser.hpp"
-#include "state_sharing/utils.hpp"
 
 class StateSharing;
 class PublisherStateSharing : public px4::ScheduledWorkItem
@@ -67,10 +64,13 @@ public:
 	/**
 	 * @brief Start the state sharing publisher with specified timing parameters.
 	 *
-	 * @param period The period between state sharing messages in microseconds
-	 * @param delay The initial delay before starting to publish in microseconds
+	 * @param period_us The period between state sharing messages in microseconds
+	 * @param delay_us The initial delay before starting to publish in microseconds
+	 * @param sync_epoch_us Real-time (UTC) epoch in microseconds at which the schedule is anchored.
+	 *                      The delay is added on top of the time remaining until this epoch.
+	 *                      0 starts immediately (only the delay applies).
 	 */
-	void start(double period, double delay);
+	void start(double period_us, double delay_us, uint64_t sync_epoch_us);
 
 	/**
 	 * @brief Stop the state sharing publisher.
@@ -130,15 +130,28 @@ public:
 	/**
 	 * @brief Get the current state sharing message.
 	 *
-	 * @return Current state sharing message with position and attitude information
+	 * Only the fields enabled in the active data flags are populated, the rest are zeroed
+	 * so that MAVLink 2 zero-truncation strips them from the wire.
+	 *
+	 * @return Current state sharing message with the telemetry selected by the data flags
 	 */
 	state_sharing_msg_s getStateSharing() const;
 
 	/**
 	 * @brief Start the state sharing publisher.
 	 *
-	 * Starts the publisher with the configured sharing period and delay start parameters.
 	 * The publisher will begin sending state sharing messages at the specified interval.
+	 *
+	 * @param period_s Period between messages in seconds
+	 * @param delay_s Initial delay before the first message in seconds
+	 * @param sync_epoch_us Real-time epoch in microseconds to anchor the schedule (0 = immediate)
+	 */
+	void start_publisher(float period_s, float delay_s, uint64_t sync_epoch_us);
+
+	/**
+	 * @brief Start the state sharing publisher with the configured parameters.
+	 *
+	 * Uses SHARING_PERIOD and DELAY_START with no synchronization epoch.
 	 */
 	void start_publisher();
 
@@ -151,11 +164,43 @@ public:
 
 	int print_status() override;
 
+	/**
+	 * @brief Get current real time in nanoseconds.
+	 *
+	 * @return Current CLOCK_REALTIME time in nanoseconds
+	 */
+	inline static uint64_t getRealTimeNs()
+	{
+		timespec tv = {};
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		return static_cast<uint64_t>(tv.tv_sec) * 1000000000ULL + static_cast<uint64_t>(tv.tv_nsec);
+	}
+
+	/**
+	 * @brief Get current real time in microseconds.
+	 *
+	 * @return Current CLOCK_REALTIME time in microseconds
+	 */
+	inline static uint64_t getRealTimeUs()
+	{
+		return getRealTimeNs() / 1000ULL;
+	}
+
 private:
 	void Run() override;
 
+	/**
+	 * @brief Update data_flags in _state_sharing and zero out inactive fields.
+	 *
+	 * Zeroed trailing fields are stripped on the wire via MAVLink 2 zero-truncation.
+	 *
+	 * @param flags Bitmask of active telemetry fields
+	 */
+	void update_data_flags(uint16_t flags);
+
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _vehicle_odometry_sub{this, ORB_ID(vehicle_odometry)};
+	uORB::Subscription                 _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription                 _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionCallbackWorkItem _state_sharing_control_sub{this, ORB_ID(incoming_state_sharing_control)};
 	uORB::Subscription                 _parameter_update_sub{ORB_ID(parameter_update)};
@@ -168,7 +213,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamFloat<px4::params::SHARING_PERIOD>) _param_sharing_period,
-		(ParamFloat<px4::params::DELAY_START>) _param_delay_start
+		(ParamFloat<px4::params::DELAY_START>) _param_delay_start,
+		(ParamInt<px4::params::SHARING_FLAGS>) _param_sharing_flags
 	)
 
 	state_sharing_msg_s _state_sharing{};
