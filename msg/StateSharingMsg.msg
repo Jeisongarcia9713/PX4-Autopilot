@@ -1,14 +1,18 @@
-# Customized statesharing message
-uint64 timestamp
-uint64 timestamp_real_time
-uint16 agent_id
+uint64 timestamp             # time since system boot, us
+uint64 timestamp_real_time   # UTC/realtime epoch timestamp, us (0 if unavailable)
+uint8 sysid                  # vehicle ID (populated from MAVLink header sysid)
 
-# global position coordinates
-float32 global_position_lon
-float32 global_position_lat
-float32 global_position_alt
+uint16 data_flags            # Bitmask of actual telemetry included in this message
 
-# quaternion
-float32[4] q
+# Global position coordinates
+int32 global_position_lat    # latitude in degE7
+int32 global_position_lon    # longitude in degE7
+float32 global_position_alt  # altitude AMSL (m)
+
+# Dynamic kinematics & auxiliary (trailing fields for zero-truncation)
+float32[3] velocity          # NED velocity (m/s)
+float32[4] q                 # Attitude quaternion (w, x, y, z)
+float32[3] acceleration      # NED linear acceleration (m/s^2)
+float32[4] aux               # Auxiliary application-defined fields (consensus, radius, custom)
 
 # TOPICS incoming_state_sharing outgoing_state_sharing
