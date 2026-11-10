@@ -73,9 +73,6 @@ publications:
   - topic: /fmu/out/vehicle_command_ack
     type: px4_msgs::msg::VehicleCommandAck
 
-  - topic: /fmu/out/vehicle_attitude
-    type: px4_msgs::msg::VehicleAttitude
-
   - topic: /fmu/out/vehicle_global_position
     type: px4_msgs::msg::VehicleGlobalPosition
     rate_limit: 50.
@@ -259,11 +256,6 @@ subscriptions:
   - topic: /fmu/in/landing_gear
     type: px4_msgs::msg::LandingGear
 
-  - topic: /fmu/in/trajectory_setpoint
-    type: px4_msgs::msg::TrajectorySetpoint
-
-  - topic: /fmu/in/offboard_control_mode
-    type: px4_msgs::msg::OffboardControlMode
 # Create uORB::PublicationMulti
 subscriptions_multi:
   - topic: /fmu/in/aux_global_position
