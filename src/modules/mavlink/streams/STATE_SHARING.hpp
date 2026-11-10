@@ -12,7 +12,7 @@ public:
 	{
 		return new MavlinkStreamStateSharing(mavlink);
 	}
-	const char *get_name() const
+	const char *get_name() const override
 	{
 		return MavlinkStreamStateSharing::get_name_static();
 	}
@@ -24,11 +24,11 @@ public:
 	{
 		return MAVLINK_MSG_ID_STATE_SHARING;
 	}
-	uint16_t get_id()
+	uint16_t get_id() override
 	{
 		return get_id_static();
 	}
-	unsigned get_size()
+	unsigned get_size() override
 	{
 		return MAVLINK_MSG_ID_STATE_SHARING_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
@@ -53,14 +53,17 @@ protected:
 			state_sharing_msg_s outgoing_state;
 
 			if (_out_state_sharing_msg_sub.copy(&outgoing_state)) {
-				mavlink_state_sharing_t mav_state_sharing_msg;
+				mavlink_state_sharing_t mav_state_sharing_msg{};
 				mav_state_sharing_msg.timestamp = outgoing_state.timestamp;
 				mav_state_sharing_msg.timestamp_real_time = outgoing_state.timestamp_real_time;
-				mav_state_sharing_msg.agent_id = outgoing_state.agent_id;
-				mav_state_sharing_msg.global_position_lon = outgoing_state.global_position_lon;
-				mav_state_sharing_msg.global_position_lat = outgoing_state.global_position_lat;
-				mav_state_sharing_msg.global_position_alt = outgoing_state.global_position_alt;
-				memcpy(mav_state_sharing_msg.q, outgoing_state.q, sizeof(outgoing_state.q));
+				mav_state_sharing_msg.lat = outgoing_state.global_position_lat;
+				mav_state_sharing_msg.lon = outgoing_state.global_position_lon;
+				mav_state_sharing_msg.alt = outgoing_state.global_position_alt;
+				memcpy(mav_state_sharing_msg.q, outgoing_state.q, sizeof(mav_state_sharing_msg.q));
+				mav_state_sharing_msg.data_flags = outgoing_state.data_flags;
+				memcpy(mav_state_sharing_msg.velocity, outgoing_state.velocity, sizeof(mav_state_sharing_msg.velocity));
+				memcpy(mav_state_sharing_msg.acceleration, outgoing_state.acceleration, sizeof(mav_state_sharing_msg.acceleration));
+				memcpy(mav_state_sharing_msg.aux, outgoing_state.aux, sizeof(mav_state_sharing_msg.aux));
 
 				//Send the message
 				mavlink_msg_state_sharing_send_struct(_mavlink->get_channel(), &mav_state_sharing_msg);

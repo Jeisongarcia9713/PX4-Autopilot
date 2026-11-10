@@ -12,7 +12,7 @@ public:
 	{
 		return new MavlinkStreamStateSharingControl(mavlink);
 	}
-	const char *get_name() const
+	const char *get_name() const override
 	{
 		return MavlinkStreamStateSharingControl::get_name_static();
 	}
@@ -24,11 +24,11 @@ public:
 	{
 		return MAVLINK_MSG_ID_STATE_SHARING_CONTROL;
 	}
-	uint16_t get_id()
+	uint16_t get_id() override
 	{
 		return get_id_static();
 	}
-	unsigned get_size()
+	unsigned get_size() override
 	{
 		return MAVLINK_MSG_ID_STATE_SHARING_CONTROL_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
 	}
@@ -52,10 +52,14 @@ protected:
 			state_sharing_control_s outgoing_state_control;
 
 			if (_out_state_sharing_control_sub.copy(&outgoing_state_control)) {
-				mavlink_state_sharing_control_t mav_state_control_msg;
+				mavlink_state_sharing_control_t mav_state_control_msg{};
 				mav_state_control_msg.timestamp = outgoing_state_control.timestamp;
+				mav_state_control_msg.sync_epoch_us = outgoing_state_control.sync_epoch_us;
+				mav_state_control_msg.sharing_period = outgoing_state_control.sharing_period;
+				mav_state_control_msg.delay_start = outgoing_state_control.delay_start;
+				mav_state_control_msg.data_flags = outgoing_state_control.data_flags;
+				mav_state_control_msg.target_system = outgoing_state_control.target_system;
 				mav_state_control_msg.command = outgoing_state_control.command;
-				memcpy(mav_state_control_msg.args, outgoing_state_control.args, sizeof(mav_state_control_msg.args));
 
 				mavlink_msg_state_sharing_control_send_struct(_mavlink->get_channel(), &mav_state_control_msg);
 				updated = true;
